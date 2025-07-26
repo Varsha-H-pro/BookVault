@@ -7,13 +7,13 @@
 ## 📸 Screenshots
 
 ### 📂 Book List View
-![Book List](public/images/BookVault.png)
+![Book List](images/BookVault.png)
 
 ### 📝 Edit Book with Cover Image
-![Edit Book](public/images/Editimage.png)
+![Edit Book](images/Editimage.png)
 
 ### ➕ Add Book Form
-![Add Book](public/images/Addbook.png)
+![Add Book](images/Addbook.png)
 
 ---
 
