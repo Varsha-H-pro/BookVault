@@ -7,7 +7,7 @@
 ## 📸 Screenshots
 
 ### 📂 Book List View
-<img width="532" height="680" alt="Screenshot 2025-07-26 at 8 56 42 PM" src="https://github.com/user-attachments/assets/7d5e2c20-e30b-44cc-bbac-7789c133face" />
+<img width="800" height="680" alt="Screenshot 2025-07-26 at 8 56 42 PM" src="https://github.com/user-attachments/assets/7d5e2c20-e30b-44cc-bbac-7789c133face" />
 
 ### 📝 Edit Book with Cover Image
 <img width="532" height="514" alt="Screenshot 2025-07-26 at 9 10 17 PM" src="https://github.com/user-attachments/assets/a0782d42-5518-4a9a-b65f-04af3a95c6a7" />
