@@ -3,6 +3,7 @@ const mysql = require('mysql2');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const { hashPassword, comparePassword, generateToken, authenticateToken } = require('./auth');
+require('dotenv').config();
 
 const app = express();
 app.use(cors());

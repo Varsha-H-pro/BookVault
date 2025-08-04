@@ -1,7 +1,14 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+require('dotenv').config();
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET) {
+  console.error('❌ JWT_SECRET is not defined in environment variables!');
+  console.error('Please run: node generate-jwt-secret.js to generate a secret key');
+  process.exit(1);
+}
 
 // Generate JWT token
 const generateToken = (userId) => {
