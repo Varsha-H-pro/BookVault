@@ -8,7 +8,8 @@
 
 ### 📂 Book List View
 <p align="center">
-  <img width="700" alt="Screenshot 2025-07-26 at 8 56 42 PM" src="https://github.com/user-attachments/assets/7d5e2c20-e30b-44cc-bbac-7789c133face" />
+ <img width="700" height="714" alt="Screenshot 2025-08-04 at 10 48 06 PM" src="https://github.com/user-attachments/assets/cef35e46-6f85-47f0-9c7f-61c42242c84d" />
+" />
 </p>
 
 ### 📝 Edit Book with Cover Image
