@@ -6,10 +6,14 @@
 
 ## 📸 Screenshots
 
+### 📂 Login View
+<p align="center">
+<img width="700" height="714" alt="Screenshot 2025-08-04 at 10 48 41 PM" src="https://github.com/user-attachments/assets/86bfd3db-0824-4b54-b8fc-67b5d1515fb9" />
+</p>
+
 ### 📂 Book List View
 <p align="center">
  <img width="700" height="714" alt="Screenshot 2025-08-04 at 10 48 06 PM" src="https://github.com/user-attachments/assets/cef35e46-6f85-47f0-9c7f-61c42242c84d" />
-" />
 </p>
 
 ### 📝 Edit Book with Cover Image
