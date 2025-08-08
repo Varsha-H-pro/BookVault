@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import EditBook from './EditBook'; // Import EditBook component
 
-const BookList = ({ searchTerm, refresh = false }) => {
+const BookList = ({ searchTerm, refresh = false, isAdmin = false }) => {
   const [books, setBooks] = useState([]);
   const [editingBook, setEditingBook] = useState(null);
 
@@ -117,37 +117,39 @@ const BookList = ({ searchTerm, refresh = false }) => {
                 }}>
                   Price: {book.price ? `₹${book.price}` : 'N/A'} | Stock: {book.stockQuantity || 0}
                 </p>
-                <div style={{ textAlign: 'center' }}>
-                  <button
-                    style={{
-                      background: '#ef4444',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: '6px',
-                      padding: '8px 16px',
-                      fontWeight: '600',
-                      cursor: 'pointer'
-                    }}
-                    onClick={() => handleDelete(book.id)}
-                  >
-                    Delete
-                  </button>
-                  <button
-                    style={{
-                      background: '#2563eb',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: '6px',
-                      padding: '8px 16px',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                      marginLeft: '10px'
-                    }}
-                    onClick={() => setEditingBook(book)}
-                  >
-                    Edit
-                  </button>
-                </div>
+                {isAdmin && (
+                  <div style={{ textAlign: 'center' }}>
+                    <button
+                      style={{
+                        background: '#ef4444',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '8px 16px',
+                        fontWeight: '600',
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => handleDelete(book.id)}
+                    >
+                      Delete
+                    </button>
+                    <button
+                      style={{
+                        background: '#2563eb',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '8px 16px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        marginLeft: '10px'
+                      }}
+                      onClick={() => setEditingBook(book)}
+                    >
+                      Edit
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           ))}
@@ -155,7 +157,7 @@ const BookList = ({ searchTerm, refresh = false }) => {
       )}
 
       {/* EditBook Modal */}
-      {editingBook && (
+      {editingBook && isAdmin && (
         <EditBook
           book={editingBook}
           onClose={() => setEditingBook(null)}

@@ -65,12 +65,13 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (username, email, password) => {
+  const register = async (username, email, password, role = 'user') => {
     try {
       const response = await axios.post('http://localhost:5001/api/auth/register', {
         username,
         email,
-        password
+        password,
+        role
       });
 
       const { token: newToken, user: userData } = response.data;

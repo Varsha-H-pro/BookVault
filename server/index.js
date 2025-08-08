@@ -30,6 +30,7 @@ db.connect(err => {
             username VARCHAR(255) UNIQUE NOT NULL,
             email VARCHAR(255) UNIQUE NOT NULL,
             password VARCHAR(255) NOT NULL,
+            role ENUM('admin', 'user') DEFAULT 'user',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     `;
@@ -41,6 +42,28 @@ db.connect(err => {
             console.log('Users table ready');
         }
     });
+    
+    // Create cart table for users
+    const createCartTable = `
+        CREATE TABLE IF NOT EXISTS cart (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            book_id INT NOT NULL,
+            quantity INT DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE,
+            UNIQUE KEY unique_user_book (user_id, book_id)
+        )
+    `;
+    
+    db.query(createCartTable, (err) => {
+        if (err) {
+            console.error('Error creating cart table:', err);
+        } else {
+            console.log('Cart table ready');
+        }
+    });
 });
 
 // Auth Routes
@@ -48,7 +71,7 @@ db.connect(err => {
 // Register new user
 app.post('/api/auth/register', async (req, res) => {
     try {
-        const { username, email, password } = req.body;
+        const { username, email, password, role = 'user' } = req.body;
         
         if (!username || !email || !password) {
             return res.status(400).json({ message: 'All fields are required' });
@@ -56,6 +79,11 @@ app.post('/api/auth/register', async (req, res) => {
         
         if (password.length < 6) {
             return res.status(400).json({ message: 'Password must be at least 6 characters long' });
+        }
+        
+        // Validate role
+        if (role && !['admin', 'user'].includes(role)) {
+            return res.status(400).json({ message: 'Invalid role specified' });
         }
         
         // Check if user already exists
@@ -71,7 +99,7 @@ app.post('/api/auth/register', async (req, res) => {
             
             // Hash password and create user
             const hashedPassword = await hashPassword(password);
-            const newUser = { username, email, password: hashedPassword };
+            const newUser = { username, email, password: hashedPassword, role };
             
             db.query('INSERT INTO users SET ?', newUser, (err, results) => {
                 if (err) {
@@ -86,7 +114,8 @@ app.post('/api/auth/register', async (req, res) => {
                     user: {
                         id: results.insertId,
                         username,
-                        email
+                        email,
+                        role
                     }
                 });
             });
@@ -131,7 +160,8 @@ app.post('/api/auth/login', (req, res) => {
                 user: {
                     id: user.id,
                     username: user.username,
-                    email: user.email
+                    email: user.email,
+                    role: user.role
                 }
             });
         });
@@ -143,7 +173,7 @@ app.post('/api/auth/login', (req, res) => {
 
 // Verify token endpoint
 app.get('/api/auth/verify', authenticateToken, (req, res) => {
-    db.query('SELECT id, username, email FROM users WHERE id = ?', [req.userId], (err, results) => {
+    db.query('SELECT id, username, email, role FROM users WHERE id = ?', [req.userId], (err, results) => {
         if (err) {
             return res.status(500).json({ message: 'Database error' });
         }
@@ -156,6 +186,16 @@ app.get('/api/auth/verify', authenticateToken, (req, res) => {
     });
 });
 
+// Middleware to check if user is admin
+const requireAdmin = (req, res, next) => {
+    db.query('SELECT role FROM users WHERE id = ?', [req.userId], (err, results) => {
+        if (err || results.length === 0 || results[0].role !== 'admin') {
+            return res.status(403).json({ message: 'Admin access required' });
+        }
+        next();
+    });
+};
+
 // Book Routes (now protected)
 
 // GET all books
@@ -167,7 +207,7 @@ app.get('/api/books', authenticateToken, (req, res) => {
 });
 
 // POST a new book (with cover_image support)
-app.post('/api/books', authenticateToken, (req, res) => {
+app.post('/api/books', authenticateToken, requireAdmin, (req, res) => {
     const { title, author, isbn, publicationYear, genre, price, stockQuantity, cover_image } = req.body;
     const book = { title, author, isbn, publicationYear, genre, price, stockQuantity, cover_image };
     
@@ -183,7 +223,7 @@ app.post('/api/books', authenticateToken, (req, res) => {
 });
 
 // DELETE a book by ID
-app.delete('/api/books/id/:id', authenticateToken, (req, res) => {
+app.delete('/api/books/id/:id', authenticateToken, requireAdmin, (req, res) => {
     const { id } = req.params;
     db.query('DELETE FROM books WHERE id = ?', [id], (err, results) => {
         if (err) return res.status(500).send(err);
@@ -195,7 +235,7 @@ app.delete('/api/books/id/:id', authenticateToken, (req, res) => {
 });
 
 // Update a book by ID
-app.put('/api/books/:id', authenticateToken, (req, res) => {
+app.put('/api/books/:id', authenticateToken, requireAdmin, (req, res) => {
     const { id } = req.params;
     const { title, author, isbn, publicationYear, genre, price, stockQuantity, cover_image } = req.body;
     const book = { title, author, isbn, publicationYear, genre, price, stockQuantity, cover_image };
@@ -205,6 +245,143 @@ app.put('/api/books/:id', authenticateToken, (req, res) => {
             return res.status(404).json({ message: 'Book not found' });
         }
         res.json({ message: 'Book updated successfully', ...book });
+    });
+});
+
+// Cart Routes (for users)
+
+// GET user's cart
+app.get('/api/cart', authenticateToken, (req, res) => {
+    const query = `
+        SELECT c.id as cart_id, c.quantity, c.created_at,
+               b.id, b.title, b.author, b.price, b.cover_image, b.stockQuantity
+        FROM cart c
+        JOIN books b ON c.book_id = b.id
+        WHERE c.user_id = ?
+        ORDER BY c.created_at DESC
+    `;
+    
+    db.query(query, [req.userId], (err, results) => {
+        if (err) {
+            console.error('Error fetching cart:', err);
+            return res.status(500).json({ message: 'Failed to fetch cart' });
+        }
+        res.json(results);
+    });
+});
+
+// ADD item to cart
+app.post('/api/cart', authenticateToken, (req, res) => {
+    const { book_id, quantity = 1 } = req.body;
+    
+    if (!book_id) {
+        return res.status(400).json({ message: 'Book ID is required' });
+    }
+    
+    // Check if book exists and has stock
+    db.query('SELECT * FROM books WHERE id = ?', [book_id], (err, bookResults) => {
+        if (err) {
+            return res.status(500).json({ message: 'Database error' });
+        }
+        
+        if (bookResults.length === 0) {
+            return res.status(404).json({ message: 'Book not found' });
+        }
+        
+        const book = bookResults[0];
+        if (book.stockQuantity < quantity) {
+            return res.status(400).json({ message: 'Insufficient stock' });
+        }
+        
+        // Check if item already exists in cart
+        db.query('SELECT * FROM cart WHERE user_id = ? AND book_id = ?', [req.userId, book_id], (err, cartResults) => {
+            if (err) {
+                return res.status(500).json({ message: 'Database error' });
+            }
+            
+            if (cartResults.length > 0) {
+                // Update existing cart item
+                const newQuantity = cartResults[0].quantity + quantity;
+                if (newQuantity > book.stockQuantity) {
+                    return res.status(400).json({ message: 'Insufficient stock for requested quantity' });
+                }
+                
+                db.query('UPDATE cart SET quantity = ? WHERE user_id = ? AND book_id = ?', 
+                    [newQuantity, req.userId, book_id], (err) => {
+                    if (err) {
+                        return res.status(500).json({ message: 'Failed to update cart' });
+                    }
+                    res.json({ message: 'Cart updated successfully' });
+                });
+            } else {
+                // Add new cart item
+                db.query('INSERT INTO cart (user_id, book_id, quantity) VALUES (?, ?, ?)', 
+                    [req.userId, book_id, quantity], (err) => {
+                    if (err) {
+                        return res.status(500).json({ message: 'Failed to add to cart' });
+                    }
+                    res.status(201).json({ message: 'Item added to cart successfully' });
+                });
+            }
+        });
+    });
+});
+
+// REMOVE item from cart
+app.delete('/api/cart/:cart_id', authenticateToken, (req, res) => {
+    const { cart_id } = req.params;
+    
+    db.query('DELETE FROM cart WHERE id = ? AND user_id = ?', [cart_id, req.userId], (err, results) => {
+        if (err) {
+            return res.status(500).json({ message: 'Failed to remove item from cart' });
+        }
+        
+        if (results.affectedRows === 0) {
+            return res.status(404).json({ message: 'Cart item not found' });
+        }
+        
+        res.json({ message: 'Item removed from cart successfully' });
+    });
+});
+
+// UPDATE cart item quantity
+app.put('/api/cart/:cart_id', authenticateToken, (req, res) => {
+    const { cart_id } = req.params;
+    const { quantity } = req.body;
+    
+    if (!quantity || quantity < 1) {
+        return res.status(400).json({ message: 'Valid quantity is required' });
+    }
+    
+    // Get cart item and check stock
+    const query = `
+        SELECT c.*, b.stockQuantity 
+        FROM cart c 
+        JOIN books b ON c.book_id = b.id 
+        WHERE c.id = ? AND c.user_id = ?
+    `;
+    
+    db.query(query, [cart_id, req.userId], (err, results) => {
+        if (err) {
+            return res.status(500).json({ message: 'Database error' });
+        }
+        
+        if (results.length === 0) {
+            return res.status(404).json({ message: 'Cart item not found' });
+        }
+        
+        const cartItem = results[0];
+        if (quantity > cartItem.stockQuantity) {
+            return res.status(400).json({ message: 'Insufficient stock' });
+        }
+        
+        db.query('UPDATE cart SET quantity = ? WHERE id = ? AND user_id = ?', 
+            [quantity, cart_id, req.userId], (err) => {
+            if (err) {
+                return res.status(500).json({ message: 'Failed to update cart' });
+            }
+            res.json({ message: 'Cart updated successfully' });
+        });
     });
 });
 

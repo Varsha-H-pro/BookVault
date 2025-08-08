@@ -6,7 +6,8 @@ const Register = ({ onSwitchToLogin }) => {
     username: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    role: 'user'
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -36,7 +37,7 @@ const Register = ({ onSwitchToLogin }) => {
 
     setLoading(true);
 
-    const result = await register(formData.username, formData.email, formData.password);
+    const result = await register(formData.username, formData.email, formData.password, formData.role);
     
     if (!result.success) {
       setError(result.message);
@@ -80,6 +81,19 @@ const Register = ({ onSwitchToLogin }) => {
               required
               className="form-input"
             />
+          </div>
+          
+          <div className="form-group">
+            <select
+              name="role"
+              value={formData.role}
+              onChange={handleChange}
+              required
+              className="form-input"
+            >
+              <option value="user">User</option>
+              <option value="admin">Admin</option>
+            </select>
           </div>
           
           <div className="form-group">
